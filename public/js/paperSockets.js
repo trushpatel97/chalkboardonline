@@ -8,7 +8,16 @@ export let user = new User(
   "Guest" + Math.floor(Math.random() * 10000),
   "default"
 );
-export let socket = io();
+
+// Get the server URL from the environment or use a default
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:5000";
+
+// Update the socket connection to use the server URL
+export let socket = io(SERVER_URL, {
+  transports: ["websocket"],
+  path: "/socket.io"
+});
+
 export function paperSockets() {
 
 	let toolType = null;

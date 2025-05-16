@@ -1,23 +1,12 @@
-
 require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 
 // set up firestore connection 
 const admin = require('firebase-admin'); 
 const {auth} = require('google-auth-library');  
-const serviceAccount = {
-    "type": "service_account",
-    "project_id": "brilliant-will-377421",
-    "private_key_id": "22247ba029ab8c0b0f1099408e8efa50eabc1eee",
-    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCfLa4U9EMbwJHp\ndFD3O5DffinHhC2wTKQ7zqvQXcVl242ku7ZMPan7Ciw8s4YwJsAxXgT2Clsq9+X7\nqngn8RxBomBxCrlw3MtuVRbRIi597dgTsqeGDE/nyFtxxaCS/mkXD5q+07TIc2a7\nZVtxW/zMd83BzYVRj+iSz/tL5rU51Y1U/nvSCArmvRo051yi6cS38gFM5E+l556L\nzRbrydezSKy1T4fWAjjv1rAJ9uvHhIM9Un5516WsafhGEjrcUofMxJZ3eangreSd\nt0SHaXsSxivjYUB256DV4ftSzOsJarrRTkL9lXNBjY2Q1rhufGoyYrr7gARsQTzn\n67so1OXpAgMBAAECggEAGWPKaCo8CBGz1HaKsZzNM3Dmzh29wei/q5CAJFjIs0IN\nelC8t7WARvws6TPDfCu6LUWvaeVl/FkVVIqw5sIVPTzewDkzMhbt1ff5jzsyCkEl\nXaL6CK4vEqwJNgENZ1TwQ07oYnbXV7/ci5iTuOWw0ZZsefTDxqo7MSu+jDFNB9/R\nRXktT5xkNipBDgD9MlO+MpsKP/NrisOQ+xzxFuRpVwSm87GYFIdSERDMJXyuX3g+\nLLu40T5rNwynAUSvAWD4fdJSDbYJANiiTsZv2zYpHS6wGXfhUH/UA5eHqJSn6Ruo\nclmS4BPtzXBZHLEWq/D5dK572yKR8qtk+i5q3MQVlwKBgQDXiZeLyk57Uo8vXFXv\njmrIBKwk7z9NTS3jLPxZKCH1NoImZ/WWHgTWSu9dkz//NPTmIlgMvRlobfffeQqx\nbqFawJXbw40fRcZic6FG/OpaqMMzoWmTdiVqEd0BA+1KEVflbKJxfz6bFZId6MHr\n4BqNEhkIak6eMu26ccr6AOFn+wKBgQC9D46wb7bSiA7VvfWSE2hh/f8aKj/X9pG/\nORqF2+mbzOrRkvk9t/SagdzSvphdYRbtJkuAwypyWZhvB7Bu/ZrLu1XarEf3pabd\nagWRKNUZ17E3m6LNA3k1711Xdo0J2cdLbpbAfoDSezOjWkxIe+0KIkLA/Q7w0Nu3\nUekjVGBQawKBgH7bx+uKFik1jXr1oMrPiv/Q6DUQ77Qiwehc+OXM3jfCblYGiCBj\n6Lrr/fiYi2k9FQtCmYpd3k99sg/A4U9Pav7MLSfc7/nBCqO1pO3wPEtB2ypPTaFy\nP1Ev1GEdm5MlpBMvnmio2QNUbdzWuxSGoXn4de1jDITGOu+qvCnrTL/zAoGAHG39\nd/ykkk4RZQTWq6utc6bdOJMH3LLgQdAVc/GY1GvhF7ixMB28c4t5qFsu0EPsTacH\njYpLlLxyVqfiWR5bq601ANgNTmkjiYIK6kQon2U26fTGa2vNS1X+REu4c7XC6U3s\n729WcdBC+Jp4hCHWiEKUpS6ok3/kulFf7IcgoJcCgYAx/f65+YhuyrtmxikVOGbn\nvb5IwGe3z13OICDmLLuB8TPkg30w76PlvKTybLnwim93bripfFj16sbrvkpcw/O9\nq+r5GvVQ6AaZqetcwfIOJ2gQFes+PNTgZhUUXLQsZD85GqEfOa2bZzu4mHR3m5P7\n+q4ajBJZjgFzE0EDFUSNYA==\n-----END PRIVATE KEY-----\n",
-    "client_email": "chalkboard@brilliant-will-377421.iam.gserviceaccount.com",
-    "client_id": "107093779119421476195",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/chalkboard%40brilliant-will-377421.iam.gserviceaccount.com"
-  }; 
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
    
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount) 
@@ -58,9 +47,23 @@ var paths = [];    // paths = [{pathName: name, path: pathObj}, ... , {pathName:
 var newUsers = []; // new socket connections waiting to add existing paths
 let LOCKED = false;
 
-app.get('/', (req,res) => {
-    res.send('Welcome to Chalkboard');
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
+// Add endpoint to get Firebase config
+app.get('/api/firebase-config', (req, res) => {
+  const firebaseConfig = {
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID
+  };
+  res.json(firebaseConfig);
 });
 
 app.get("/:room", (req, res) => {

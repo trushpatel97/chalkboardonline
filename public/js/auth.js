@@ -1,14 +1,42 @@
 import { socket } from "./paperSockets.js"
-// listen for auth status changes
-auth.onAuthStateChanged(user => {
-    if (user) {
+// Initialize Firebase
+let firebaseApp;
+let auth;
+
+// Fetch Firebase config from server and initialize
+async function initializeFirebase() {
+  try {
+    const response = await fetch('/api/firebase-config');
+    const firebaseConfig = await response.json();
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    
+    // Set up auth state observer
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is signed in
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('signupForm').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'block';
+        document.getElementById('userEmail').textContent = user.email;
         setupUI(user);
-        socket.emit("getUsernameFromAuth", auth.currentUser.email);
-    } else {
+        socket.emit("getUsernameFromAuth", user.email);
+      } else {
+        // User is signed out
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('signupForm').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'none';
         setupUI();
         socket.emit("getUsernameFromAuth", -1);
-    }
-})
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+  }
+}
+
+// Call initializeFirebase when the page loads
+document.addEventListener('DOMContentLoaded', initializeFirebase);
 
 // signup
 const signupForm = document.querySelector('#signup-form');
